@@ -4,47 +4,50 @@ using System.Collections;
 
 public class MyBandit : MonoBehaviour
 {
-
-    [SerializeField] float m_speed = 0.40f;
-    [SerializeField] float health = 4.0f;
-    [SerializeField] float m_jumpForce = 7.5f;
-    [SerializeField] float min_X_Pos = 3;
-    [SerializeField] float start_X_Pos = 9;
-    [SerializeField] bool isAttacking = true;
-    [SerializeField] bool isEnemy = false;
-    [SerializeField] GameManager gameManager;
-
-
+    [SerializeField] private float m_speed = 0.40f;
+    [SerializeField] private float health = 4.0f;
+    [SerializeField] private float min_X_Pos = 3;
+    [SerializeField] private float start_X_Pos = 9;
+    
+    private bool isAttacking;
+    private bool isEnemy = false;
     private Animator m_animator;
-    private Rigidbody2D m_body2d;
-    private bool m_combatIdle = false;
-    private bool m_isDead = false;
-
     private bool movingForward = false;
     private bool movingBack = false;
-
     private bool attack = false;
+    private bool isPlayerStep = false;
+    private bool isDead;
+   
     private MyBandit enemyAnimator;
+    private SpriteRenderer spriteRenderer;
+
+    public static event Action<string> enemySelected;
+    public static event Action startNextStep;
+
 
     // Use this for initialization
     void Start()
     {
+        MyBandit.enemySelected += SetAsEnemy;
+        GameManager.ckeckIsPlayerStep += SetPlayerStep;
+        GameManager.cleareColor += ClearColor;
         m_animator = GetComponent<Animator>();
-        //m_body2d = GetComponent<Rigidbody2D>();
         start_X_Pos = transform.position.x;
-        enemyAnimator = GameObject.Find("LightBandit_0 (2)").GetComponent<MyBandit>();
-        gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
+        spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
     }
 
     // Update is called once per frame
     void Update()
     {
         if (movingForward || movingBack)
+        {
             m_animator.SetInteger("AnimState", 2);
-
+        }
         //Combat Idle
         else
+        {
             m_animator.SetInteger("AnimState", 1);
+        }
 
         if (Math.Abs(transform.position.x) <= Math.Abs(min_X_Pos))
         {
@@ -56,22 +59,20 @@ public class MyBandit : MonoBehaviour
             }
         }
         
-        if (Math.Abs(transform.position.x) >= Math.Abs(start_X_Pos))
+        if (Math.Abs(transform.position.x) >= Math.Abs(start_X_Pos) && movingBack)
         {
             movingBack = false;
+            gameObject.SetActive(!HideCorps());
         }
 
         if (movingForward)
         {
             transform.Translate(new Vector2(m_speed * Time.deltaTime, transform.position.y));
-            //m_body2d.velocity = new Vector2(m_speed, m_body2d.velocity.y);
         }
         else if(movingBack)
         {
             transform.Translate(new Vector2(-m_speed * Time.deltaTime, transform.position.y));
-            //m_body2d.velocity = new Vector2(-m_speed, m_body2d.velocity.y);
         }
-
     }
 
     public void Attacking()
@@ -79,17 +80,20 @@ public class MyBandit : MonoBehaviour
         StartCoroutine(WaitAfterAttack());
     }
 
-    IEnumerator WaitAfterAttack(float time = 2)
+    private IEnumerator WaitAfterAttack(float time = 2)
     {
         
         yield return new WaitForSeconds(time);
         
         movingBack = true;
+        gameObject.SetActive(!HideCorps());
         attack = false;
         isEnemy = false;
-        if (isAttacking) gameManager.StartNextStep();
+        if (isAttacking)
+        {
+            startNextStep?.Invoke();
+        }
         isAttacking = false;
-        
     }
 
     IEnumerator WaitBeforeAttack()
@@ -100,14 +104,15 @@ public class MyBandit : MonoBehaviour
 
     public void GetDamage(int damage)
     {
+        spriteRenderer.color = Color.white;
         isAttacking = false;
         isEnemy = true;
-        //if(isAttacking) return;
         health -= damage;
         if (health <= 0)
         {
             m_animator.SetTrigger("Death");
             gameObject.tag = "Dead";
+            isDead = true;
         }
         else
         {
@@ -134,9 +139,57 @@ public class MyBandit : MonoBehaviour
 
     void OnMouseDown()
     {
-        if (gameManager.isPlayerStep && gameObject.CompareTag("Enemy"))
+        if (isPlayerStep && gameObject.CompareTag("Enemy"))
         {
-            gameManager.PlayerAttack(gameObject.name);
+            enemySelected?.Invoke(gameObject.name);
         }
+    }
+
+    void OnMouseEnter()
+    {
+        if (isPlayerStep && gameObject.CompareTag("Enemy") && !isEnemy)
+        {
+            spriteRenderer.color = Color.yellow;
+        }
+    }
+
+    void OnMouseExit()
+    {
+        if (!isEnemy && !gameObject.CompareTag("Player"))
+        {
+            ClearColor();
+        }
+    }
+
+    private void SetAsEnemy(string name)
+    {
+        if (gameObject.name == name)
+        {
+            isEnemy = true;
+            spriteRenderer.color = Color.red;
+        }
+        else
+        {
+            isEnemy = false;
+            if (gameObject.CompareTag("Enemy"))
+            {
+                ClearColor();
+            }
+        }
+    }
+
+    private void SetPlayerStep(bool isPlayerStep)
+    {
+        this.isPlayerStep = isPlayerStep;
+    }
+
+    private void ClearColor()
+    {
+        spriteRenderer.color = Color.white;
+    }
+
+    private bool HideCorps()
+    {
+        return isDead && movingBack;
     }
 }
