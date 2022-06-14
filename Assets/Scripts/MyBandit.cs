@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MyBandit : MonoBehaviour
 {
@@ -8,7 +9,10 @@ public class MyBandit : MonoBehaviour
     [SerializeField] private float health = 4.0f;
     [SerializeField] private float min_X_Pos = 3;
     [SerializeField] private float start_X_Pos = 9;
-    
+    [SerializeField] GameObject playerMarker;
+    [SerializeField] List<AudioClip> audioClips;
+    [SerializeField] private AudioSource audioSource;
+
     private bool isAttacking;
     private bool isEnemy = false;
     private Animator m_animator;
@@ -17,9 +21,15 @@ public class MyBandit : MonoBehaviour
     private bool attack = false;
     private bool isPlayerStep = false;
     private bool isDead;
-   
+    private Color myYellow = new Color(1,0.92f,0.016f, 0.4f);
+    private Color myBlue = new Color(0, 0, 1, 0.45f);
+    private Color myRed = new Color(1, 0, 0, 0.4f);
+    private Color myWhite = new Color(1, 1, 1, 0.0f);
+    private SpriteRenderer playerMarkerSpriteRenderer;
     private MyBandit enemyAnimator;
-    private SpriteRenderer spriteRenderer;
+    private const string attackTrigger = "Attack";
+    private const string hitTrigger = "Hurt";
+    private const string deathTrigger = "Death";
 
     public static event Action<string> enemySelected;
     public static event Action startNextStep;
@@ -33,7 +43,8 @@ public class MyBandit : MonoBehaviour
         GameManager.cleareColor += ClearColor;
         m_animator = GetComponent<Animator>();
         start_X_Pos = transform.position.x;
-        spriteRenderer = gameObject.GetComponent<SpriteRenderer>();
+        playerMarkerSpriteRenderer = playerMarker.GetComponent<SpriteRenderer>();
+        ClearColor();
     }
 
     // Update is called once per frame
@@ -67,11 +78,11 @@ public class MyBandit : MonoBehaviour
 
         if (movingForward)
         {
-            transform.Translate(new Vector2(m_speed * Time.deltaTime, transform.position.y));
+            transform.Translate(new Vector2(m_speed * Time.deltaTime, 0));
         }
         else if(movingBack)
         {
-            transform.Translate(new Vector2(-m_speed * Time.deltaTime, transform.position.y));
+            transform.Translate(new Vector2(-m_speed * Time.deltaTime, 0));
         }
     }
 
@@ -99,24 +110,27 @@ public class MyBandit : MonoBehaviour
     IEnumerator WaitBeforeAttack()
     {
         yield return new WaitForSeconds(2);
-        m_animator.SetTrigger("Attack");
+        m_animator.SetTrigger(attackTrigger);
+        PlaySound(attackTrigger);
     }
 
     public void GetDamage(int damage)
     {
-        spriteRenderer.color = Color.white;
+        ClearColor();
         isAttacking = false;
         isEnemy = true;
         health -= damage;
         if (health <= 0)
         {
-            m_animator.SetTrigger("Death");
+            m_animator.SetTrigger(deathTrigger);
+            PlaySound(deathTrigger);
             gameObject.tag = "Dead";
             isDead = true;
         }
         else
         {
-            m_animator.SetTrigger("Hurt");
+            m_animator.SetTrigger(hitTrigger);
+            PlaySound(hitTrigger);
         }
 
         StartCoroutine(WaitAfterAttack(2.5f));
@@ -149,7 +163,7 @@ public class MyBandit : MonoBehaviour
     {
         if (isPlayerStep && gameObject.CompareTag("Enemy") && !isEnemy)
         {
-            spriteRenderer.color = Color.yellow;
+            playerMarkerSpriteRenderer.color = myYellow;
         }
     }
 
@@ -166,7 +180,7 @@ public class MyBandit : MonoBehaviour
         if (gameObject.name == name)
         {
             isEnemy = true;
-            spriteRenderer.color = Color.red;
+            playerMarkerSpriteRenderer.color = myRed;
         }
         else
         {
@@ -178,18 +192,48 @@ public class MyBandit : MonoBehaviour
         }
     }
 
-    private void SetPlayerStep(bool isPlayerStep)
+    private void SetPlayerStep(bool playerStep)
     {
-        this.isPlayerStep = isPlayerStep;
+        this.isPlayerStep = playerStep;
     }
 
     private void ClearColor()
     {
-        spriteRenderer.color = Color.white;
+        playerMarkerSpriteRenderer.color = myWhite;
+    }
+
+    private void SetBlueColor()
+    {
+        playerMarkerSpriteRenderer.color = myBlue;
     }
 
     private bool HideCorps()
     {
         return isDead && movingBack;
+    }
+
+    private void PlaySound(string soundType)
+    {
+        switch (soundType)
+        {
+            case hitTrigger:
+            {
+                audioSource.clip = audioClips[0];
+                audioSource.Play();
+                break;
+            }
+            case deathTrigger:
+            {
+                audioSource.clip = audioClips[1];
+                audioSource.Play();
+                break;
+            }
+            case attackTrigger:
+            {
+                audioSource.clip = audioClips[2];
+                audioSource.Play();
+                break;
+            }
+        }
     }
 }

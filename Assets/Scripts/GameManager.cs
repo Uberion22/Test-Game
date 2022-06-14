@@ -96,7 +96,7 @@ public class GameManager : MonoBehaviour
         }
         else if(allPlayers[currentStep].CompareTag("Player"))
         {
-            allPlayers[currentStep].GetComponent<SpriteRenderer>().color = Color.blue;
+            allPlayers[currentStep].SendMessage($"SetBlueColor");
             SetButtonsStatus(true);
             ckeckIsPlayerStep?.Invoke(true);
             Debug.Log("Player step!" + currentStep);
@@ -135,7 +135,7 @@ public class GameManager : MonoBehaviour
         {
             cleareColor?.Invoke();
             allPlayers[currentStep].SendMessage($"StartAttack", enemyName);
-            allPlayers[currentStep].GetComponent<SpriteRenderer>().color = Color.white;
+            allPlayers[currentStep].SendMessage($"ClearColor");
             currentStep++;
             SetButtonsStatus(false);
         }
