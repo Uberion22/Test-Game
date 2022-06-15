@@ -50,4 +50,13 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  steps: 
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  endGameText: {fileID: 0}
+  roundText: {fileID: 0}
+  combatQuery: {fileID: 0}
+  attackBtn: {fileID: 0}
+  skipBtn: {fileID: 0}
+  restartBtn: {fileID: 0}
+  startBtn: {fileID: 0}

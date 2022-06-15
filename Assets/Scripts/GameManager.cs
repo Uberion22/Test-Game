@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Button skipBtn;
     [SerializeField] private Button restartBtn;
     [SerializeField] private Button startBtn;
+    [SerializeField] private AudioSource audioSource;
 
     private List<GameObject> allPlayers;
     private int currentStep;
@@ -33,13 +34,14 @@ public class GameManager : MonoBehaviour
     {
         MyBandit.enemySelected += PlayerAttack;
         MyBandit.startNextStep += StartNextStep;
+        audioSource.Play();
         GenerateSteps();
     }
 
     public void GenerateSteps()
     {
         roundNumber++;
-        allPlayers = enemys.Where(e => !e.CompareTag("Dead")).ToList();
+        allPlayers = enemys.Where(e => !e.CompareTag(CharacterTags.Dead)).ToList();
         var count = allPlayers.Count;
         var r = new System.Random();
         for (int i = count - 1; i >= 1; i--)
@@ -52,7 +54,7 @@ public class GameManager : MonoBehaviour
         SetCombatQueryText(allPlayers);
     }
 
-    IEnumerator WaitBeforeNextStep()
+    private IEnumerator WaitBeforeNextStep()
     {
         yield return new WaitForSeconds(6);
         NextStep();
@@ -60,13 +62,13 @@ public class GameManager : MonoBehaviour
 
     public void StartNextStep()
     {
-        if (!allPlayers.Any(e => e.CompareTag("Player")))
+        if (!allPlayers.Any(e => e.CompareTag(CharacterTags.Player)))
         {
-            ShowEndGameText("Game Over!");
+            ShowEndGameText(EndGameText.LooseText);
         }
-        else if (!allPlayers.Any(e => e.CompareTag("Enemy")))
+        else if (!allPlayers.Any(e => e.CompareTag(CharacterTags.Enemy)))
         {
-            ShowEndGameText("You Win!");
+            ShowEndGameText(EndGameText.WinText);
         }
         else
         {
@@ -78,6 +80,7 @@ public class GameManager : MonoBehaviour
     {
         enemyName = String.Empty;
         cleareColor?.Invoke();
+        SetCombatQueryText(allPlayers);
         if (currentStep >= allPlayers.Count)
         {
             currentStep = 0; 
@@ -85,16 +88,16 @@ public class GameManager : MonoBehaviour
             ShowRoundMessage(roundNumber);
         }
 
-        if (allPlayers[currentStep].CompareTag("Enemy"))
+        if (allPlayers[currentStep].CompareTag(CharacterTags.Enemy))
         {
             ckeckIsPlayerStep?.Invoke(false);
             SetButtonsStatus(false);
-            var players = allPlayers.Where(e => e.CompareTag("Player")).ToList();
+            var players = allPlayers.Where(e => e.CompareTag(CharacterTags.Player)).ToList();
             var playerIndex = Random.Range(0, players.Count - 1);
             allPlayers[currentStep].SendMessage($"StartAttack", players[playerIndex].name);
             currentStep++;
         }
-        else if(allPlayers[currentStep].CompareTag("Player"))
+        else if(allPlayers[currentStep].CompareTag(CharacterTags.Player))
         {
             allPlayers[currentStep].SendMessage($"SetBlueColor");
             SetButtonsStatus(true);
@@ -107,12 +110,11 @@ public class GameManager : MonoBehaviour
             NextStep();
         }
         Debug.Log("Current Step is: " + currentStep);
-        
     }
 
-    private void PlayerAttack(string enemyName)
+    private void PlayerAttack(string currentEnemyName)
     {
-        this.enemyName = enemyName;
+        this.enemyName = currentEnemyName;
     }
 
     private void SetButtonsStatus(bool status)
@@ -124,7 +126,6 @@ public class GameManager : MonoBehaviour
     public void OnSkipDown()
     {
         enemyName = String.Empty;
-        cleareColor?.Invoke();
         currentStep++;
         NextStep();
     }
@@ -182,9 +183,20 @@ public class GameManager : MonoBehaviour
     private void SetCombatQueryText(List<GameObject> combatQuery)
     {
         var text = "";
-        foreach (var fighter in combatQuery)
+        for(var i = 0; i < combatQuery.Count; i++)
         {
-            text += fighter.name + "." + "\n";
+            var color = MessageColors.DefaultCharacter;
+            if (combatQuery[i].CompareTag(CharacterTags.Dead))
+            {
+                color = MessageColors.DeadCharacter;
+            }
+
+            if (i == currentStep)
+            {
+                color = MessageColors.CurrentCharacter;
+            }
+
+            text += $"<color={color}>{combatQuery[i].name}</color> " + "\n";
         }
 
         this.combatQuery.text = text;

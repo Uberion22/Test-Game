@@ -1,35 +1,28 @@
 using System;
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 
 public class MyBandit : MonoBehaviour
 {
     [SerializeField] private float m_speed = 0.40f;
     [SerializeField] private float health = 4.0f;
+    [SerializeField] private float unitPower = 2.0f;
     [SerializeField] private float min_X_Pos = 3;
     [SerializeField] private float start_X_Pos = 9;
     [SerializeField] GameObject playerMarker;
-    [SerializeField] List<AudioClip> audioClips;
     [SerializeField] private AudioSource audioSource;
-
+    [SerializeField] private Animator m_animator;
+    [SerializeField] private SpriteRenderer playerMarkerSpriteRenderer;
+    
     private bool isAttacking;
-    private bool isEnemy = false;
-    private Animator m_animator;
-    private bool movingForward = false;
-    private bool movingBack = false;
-    private bool attack = false;
-    private bool isPlayerStep = false;
+    private bool isEnemy;
+    private bool movingForward;
+    private bool movingBack;
+    private bool attack;
+    private bool isPlayerStep;
     private bool isDead;
-    private Color myYellow = new Color(1,0.92f,0.016f, 0.4f);
-    private Color myBlue = new Color(0, 0, 1, 0.45f);
-    private Color myRed = new Color(1, 0, 0, 0.4f);
-    private Color myWhite = new Color(1, 1, 1, 0.0f);
-    private SpriteRenderer playerMarkerSpriteRenderer;
+    
     private MyBandit enemyAnimator;
-    private const string attackTrigger = "Attack";
-    private const string hitTrigger = "Hurt";
-    private const string deathTrigger = "Death";
 
     public static event Action<string> enemySelected;
     public static event Action startNextStep;
@@ -38,12 +31,10 @@ public class MyBandit : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        MyBandit.enemySelected += SetAsEnemy;
+        enemySelected += SetAsEnemy;
         GameManager.ckeckIsPlayerStep += SetPlayerStep;
         GameManager.cleareColor += ClearColor;
-        m_animator = GetComponent<Animator>();
         start_X_Pos = transform.position.x;
-        playerMarkerSpriteRenderer = playerMarker.GetComponent<SpriteRenderer>();
         ClearColor();
     }
 
@@ -52,12 +43,12 @@ public class MyBandit : MonoBehaviour
     {
         if (movingForward || movingBack)
         {
-            m_animator.SetInteger("AnimState", 2);
+            m_animator.SetInteger(TriggersNames.AnimationState, 2);
         }
         //Combat Idle
         else
         {
-            m_animator.SetInteger("AnimState", 1);
+            m_animator.SetInteger(TriggersNames.AnimationState, 1);
         }
 
         if (Math.Abs(transform.position.x) <= Math.Abs(min_X_Pos))
@@ -75,14 +66,14 @@ public class MyBandit : MonoBehaviour
             movingBack = false;
             gameObject.SetActive(!HideCorps());
         }
-
+        var coef = 15.0f / (Math.Abs(start_X_Pos) - Math.Abs(min_X_Pos));
         if (movingForward)
         {
-            transform.Translate(new Vector2(m_speed * Time.deltaTime, 0));
+            transform.Translate(GetUnitTransformVector());
         }
         else if(movingBack)
         {
-            transform.Translate(new Vector2(-m_speed * Time.deltaTime, 0));
+            transform.Translate(-GetUnitTransformVector());
         }
     }
 
@@ -107,14 +98,13 @@ public class MyBandit : MonoBehaviour
         isAttacking = false;
     }
 
-    IEnumerator WaitBeforeAttack()
+    private IEnumerator WaitBeforeAttack()
     {
         yield return new WaitForSeconds(2);
-        m_animator.SetTrigger(attackTrigger);
-        PlaySound(attackTrigger);
+        m_animator.SetTrigger(TriggersNames.AttackTrigger);
     }
 
-    public void GetDamage(int damage)
+    public void GetDamage(float damage)
     {
         ClearColor();
         isAttacking = false;
@@ -122,23 +112,21 @@ public class MyBandit : MonoBehaviour
         health -= damage;
         if (health <= 0)
         {
-            m_animator.SetTrigger(deathTrigger);
-            PlaySound(deathTrigger);
-            gameObject.tag = "Dead";
+            m_animator.SetTrigger(TriggersNames.DeathTrigger);
+            gameObject.tag = CharacterTags.Dead;
             isDead = true;
         }
         else
         {
-            m_animator.SetTrigger(hitTrigger);
-            PlaySound(hitTrigger);
+            m_animator.SetTrigger(TriggersNames.HitTrigger);
         }
 
         StartCoroutine(WaitAfterAttack(2.5f));
     }
 
-    public void SendDamage(int damage)
+    public void SendDamage()
     {
-        enemyAnimator.GetDamage(damage);
+        enemyAnimator.GetDamage(unitPower);
     }
 
     public void StartAttack(object enemyName)
@@ -151,25 +139,25 @@ public class MyBandit : MonoBehaviour
         Debug.Log($"Attack {enemyName.ToString()}");
     }
 
-    void OnMouseDown()
+    private void OnMouseDown()
     {
-        if (isPlayerStep && gameObject.CompareTag("Enemy"))
+        if (isPlayerStep && gameObject.CompareTag(CharacterTags.Enemy))
         {
             enemySelected?.Invoke(gameObject.name);
         }
     }
 
-    void OnMouseEnter()
+    private void OnMouseEnter()
     {
-        if (isPlayerStep && gameObject.CompareTag("Enemy") && !isEnemy)
+        if (isPlayerStep && gameObject.CompareTag(CharacterTags.Enemy) && !isEnemy)
         {
-            playerMarkerSpriteRenderer.color = myYellow;
+            playerMarkerSpriteRenderer.color = MyColors.MyYellow;
         }
     }
 
-    void OnMouseExit()
+    private void OnMouseExit()
     {
-        if (!isEnemy && !gameObject.CompareTag("Player"))
+        if (!isEnemy && !gameObject.CompareTag(CharacterTags.Player))
         {
             ClearColor();
         }
@@ -180,12 +168,12 @@ public class MyBandit : MonoBehaviour
         if (gameObject.name == name)
         {
             isEnemy = true;
-            playerMarkerSpriteRenderer.color = myRed;
+            playerMarkerSpriteRenderer.color = MyColors.MyRed;
         }
         else
         {
             isEnemy = false;
-            if (gameObject.CompareTag("Enemy"))
+            if (gameObject.CompareTag(CharacterTags.Enemy))
             {
                 ClearColor();
             }
@@ -199,12 +187,12 @@ public class MyBandit : MonoBehaviour
 
     private void ClearColor()
     {
-        playerMarkerSpriteRenderer.color = myWhite;
+        playerMarkerSpriteRenderer.color = MyColors.MyWhite;
     }
 
     private void SetBlueColor()
     {
-        playerMarkerSpriteRenderer.color = myBlue;
+        playerMarkerSpriteRenderer.color = MyColors.MyBlue;
     }
 
     private bool HideCorps()
@@ -212,28 +200,16 @@ public class MyBandit : MonoBehaviour
         return isDead && movingBack;
     }
 
-    private void PlaySound(string soundType)
+    private Vector2 GetUnitTransformVector()
     {
-        switch (soundType)
-        {
-            case hitTrigger:
-            {
-                audioSource.clip = audioClips[0];
-                audioSource.Play();
-                break;
-            }
-            case deathTrigger:
-            {
-                audioSource.clip = audioClips[1];
-                audioSource.Play();
-                break;
-            }
-            case attackTrigger:
-            {
-                audioSource.clip = audioClips[2];
-                audioSource.Play();
-                break;
-            }
-        }
+        var vectorCoef = 15.0f / (Math.Abs(start_X_Pos) - Math.Abs(min_X_Pos));
+        
+        return new Vector2(m_speed * Time.deltaTime, -Time.deltaTime * vectorCoef);
     }
+
+    public void PlayAudio(AudioClip clip)
+    {
+        audioSource.PlayOneShot(clip);
+    }
+
 }
