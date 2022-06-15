@@ -38,6 +38,12 @@ public class GameManager : MonoBehaviour
         GenerateSteps();
     }
 
+    private void OnDestroy()
+    {
+        cleareColor = null;
+        ckeckIsPlayerStep = null;
+    }
+
     public void GenerateSteps()
     {
         roundNumber++;

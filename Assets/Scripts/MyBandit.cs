@@ -9,7 +9,6 @@ public class MyBandit : MonoBehaviour
     [SerializeField] private float unitPower = 2.0f;
     [SerializeField] private float min_X_Pos = 3;
     [SerializeField] private float start_X_Pos = 9;
-    [SerializeField] GameObject playerMarker;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private Animator m_animator;
     [SerializeField] private SpriteRenderer playerMarkerSpriteRenderer;
@@ -21,12 +20,10 @@ public class MyBandit : MonoBehaviour
     private bool attack;
     private bool isPlayerStep;
     private bool isDead;
-    
     private MyBandit enemyAnimator;
 
     public static event Action<string> enemySelected;
     public static event Action startNextStep;
-
 
     // Use this for initialization
     void Start()
@@ -37,7 +34,7 @@ public class MyBandit : MonoBehaviour
         start_X_Pos = transform.position.x;
         ClearColor();
     }
-
+    
     // Update is called once per frame
     void Update()
     {
@@ -76,6 +73,8 @@ public class MyBandit : MonoBehaviour
             transform.Translate(-GetUnitTransformVector());
         }
     }
+
+    #region Characters Actions
 
     public void Attacking()
     {
@@ -139,6 +138,10 @@ public class MyBandit : MonoBehaviour
         Debug.Log($"Attack {enemyName.ToString()}");
     }
 
+    #endregion
+
+    #region Select Actions
+
     private void OnMouseDown()
     {
         if (isPlayerStep && gameObject.CompareTag(CharacterTags.Enemy))
@@ -179,12 +182,6 @@ public class MyBandit : MonoBehaviour
             }
         }
     }
-
-    private void SetPlayerStep(bool playerStep)
-    {
-        this.isPlayerStep = playerStep;
-    }
-
     private void ClearColor()
     {
         playerMarkerSpriteRenderer.color = MyColors.MyWhite;
@@ -194,6 +191,15 @@ public class MyBandit : MonoBehaviour
     {
         playerMarkerSpriteRenderer.color = MyColors.MyBlue;
     }
+
+    #endregion
+
+    private void SetPlayerStep(bool playerStep)
+    {
+        this.isPlayerStep = playerStep;
+    }
+
+    #region Other Methods
 
     private bool HideCorps()
     {
@@ -212,4 +218,12 @@ public class MyBandit : MonoBehaviour
         audioSource.PlayOneShot(clip);
     }
 
+    private void OnDestroy()
+    {
+        startNextStep = null;
+        enemySelected = null;
+        Debug.Log("Object Destroyed!");
+    }
+
+    #endregion
 }

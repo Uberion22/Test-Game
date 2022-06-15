@@ -20288,9 +20288,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_speed: -4
   health: 2
+  unitPower: 2
   min_X_Pos: 1.7
   start_X_Pos: 9
-  playerMarker: {fileID: 742297667510587694}
   audioSource: {fileID: 6891475803977485050}
   m_animator: {fileID: 2105013806940476196}
   playerMarkerSpriteRenderer: {fileID: 2105013806940476199}
