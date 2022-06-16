@@ -15,22 +15,19 @@ public class MyBandit : MonoBehaviour
     
     private bool isAttacking;
     private bool isEnemy;
-    private bool movingForward;
-    private bool movingBack;
-    private bool attack;
-    private bool isPlayerStep;
+    private MovingDirection movingDirectionModifer;
     private bool isDead;
-    private MyBandit enemyAnimator;
+    private MyBandit selectedEnemy;
 
-    public static event Action<string> enemySelected;
+    public static event Action<MyBandit> enemySelected;
     public static event Action startNextStep;
+    public static bool isPlayerStep;
+    private readonly float yPosModifer = 15.0f;
 
     // Use this for initialization
     void Start()
     {
         enemySelected += SetAsEnemy;
-        GameManager.ckeckIsPlayerStep += SetPlayerStep;
-        GameManager.cleareColor += ClearColor;
         start_X_Pos = transform.position.x;
         ClearColor();
     }
@@ -38,43 +35,12 @@ public class MyBandit : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (movingForward || movingBack)
-        {
-            m_animator.SetInteger(TriggersNames.AnimationState, 2);
-        }
-        //Combat Idle
-        else
-        {
-            m_animator.SetInteger(TriggersNames.AnimationState, 1);
-        }
-
-        if (Math.Abs(transform.position.x) <= Math.Abs(min_X_Pos))
-        {
-            movingForward = false;
-            if (!movingBack && !attack && isAttacking)
-            {
-                attack = true;
-                StartCoroutine(WaitBeforeAttack());
-            }
-        }
-        
-        if (Math.Abs(transform.position.x) >= Math.Abs(start_X_Pos) && movingBack)
-        {
-            movingBack = false;
-            gameObject.SetActive(!HideCorps());
-        }
-        var coef = 15.0f / (Math.Abs(start_X_Pos) - Math.Abs(min_X_Pos));
-        if (movingForward)
-        {
-            transform.Translate(GetUnitTransformVector());
-        }
-        else if(movingBack)
-        {
-            transform.Translate(-GetUnitTransformVector());
-        }
+        SetCurrentAnimState();
+        SetMovementModifer();
+        MoveUnit();
     }
 
-    #region Characters Actions
+    #region Character Actions
 
     public void Attacking()
     {
@@ -83,12 +49,10 @@ public class MyBandit : MonoBehaviour
 
     private IEnumerator WaitAfterAttack(float time = 2)
     {
-        
         yield return new WaitForSeconds(time);
         
-        movingBack = true;
+        movingDirectionModifer = MovingDirection.MoveBack;
         gameObject.SetActive(!HideCorps());
-        attack = false;
         isEnemy = false;
         if (isAttacking)
         {
@@ -105,7 +69,6 @@ public class MyBandit : MonoBehaviour
 
     public void GetDamage(float damage)
     {
-        ClearColor();
         isAttacking = false;
         isEnemy = true;
         health -= damage;
@@ -125,17 +88,19 @@ public class MyBandit : MonoBehaviour
 
     public void SendDamage()
     {
-        enemyAnimator.GetDamage(unitPower);
+        selectedEnemy.GetDamage(unitPower);
     }
 
-    public void StartAttack(object enemyName)
+    public void StartAttack(object currentEnemy)
     {
-        enemyAnimator = GameObject.Find(enemyName.ToString()).GetComponent<MyBandit>();
-        enemyAnimator.movingForward = true;
-        this.movingForward = true;
+        ClearColor();
+        isPlayerStep = false;
+        selectedEnemy = currentEnemy as MyBandit;
+        selectedEnemy.movingDirectionModifer = MovingDirection.MoveForward;
+        selectedEnemy.ClearColor();
+        this.movingDirectionModifer = MovingDirection.MoveForward;
         isEnemy = false;
         isAttacking = true;
-        Debug.Log($"Attack {enemyName.ToString()}");
     }
 
     #endregion
@@ -146,7 +111,7 @@ public class MyBandit : MonoBehaviour
     {
         if (isPlayerStep && gameObject.CompareTag(CharacterTags.Enemy))
         {
-            enemySelected?.Invoke(gameObject.name);
+            enemySelected?.Invoke(gameObject.GetComponent<MyBandit>());
         }
     }
 
@@ -166,9 +131,9 @@ public class MyBandit : MonoBehaviour
         }
     }
 
-    private void SetAsEnemy(string name)
+    private void SetAsEnemy(MyBandit myBandit)
     {
-        if (gameObject.name == name)
+        if (myBandit.Equals(this))
         {
             isEnemy = true;
             playerMarkerSpriteRenderer.color = MyColors.MyRed;
@@ -182,7 +147,8 @@ public class MyBandit : MonoBehaviour
             }
         }
     }
-    private void ClearColor()
+
+    public void ClearColor()
     {
         playerMarkerSpriteRenderer.color = MyColors.MyWhite;
     }
@@ -194,23 +160,47 @@ public class MyBandit : MonoBehaviour
 
     #endregion
 
-    private void SetPlayerStep(bool playerStep)
+    #region Movment Metods
+
+    private void MoveUnit()
     {
-        this.isPlayerStep = playerStep;
+        transform.Translate((int)movingDirectionModifer * GetUnitTransformVector());
     }
+
+    private void SetMovementModifer()
+    {
+        if (!UnitOutOfFieldBounds()) return;
+
+        if (isAttacking)
+        {
+            StartCoroutine(WaitBeforeAttack());
+        }
+        movingDirectionModifer = MovingDirection.NotMove;
+    }
+
+    private bool UnitOutOfFieldBounds()
+    {
+        var currentXPos = Math.Abs(transform.position.x);
+        var outOfMinXPosWhenMoveForward = currentXPos < Math.Abs(min_X_Pos) && movingDirectionModifer == MovingDirection.MoveForward;
+        var outOfStartXPosWhenMoveBack = currentXPos > Math.Abs(start_X_Pos) && movingDirectionModifer == MovingDirection.MoveBack;
+
+        return outOfStartXPosWhenMoveBack || outOfMinXPosWhenMoveForward;
+    }
+
+    #endregion
 
     #region Other Methods
 
     private bool HideCorps()
     {
-        return isDead && movingBack;
+        return isDead && movingDirectionModifer == MovingDirection.MoveBack;
     }
 
     private Vector2 GetUnitTransformVector()
     {
-        var vectorCoef = 15.0f / (Math.Abs(start_X_Pos) - Math.Abs(min_X_Pos));
+        var yComponent = -Time.deltaTime * yPosModifer / (Math.Abs(start_X_Pos) - Math.Abs(min_X_Pos));
         
-        return new Vector2(m_speed * Time.deltaTime, -Time.deltaTime * vectorCoef);
+        return new Vector2(m_speed * Time.deltaTime, yComponent);
     }
 
     public void PlayAudio(AudioClip clip)
@@ -223,6 +213,14 @@ public class MyBandit : MonoBehaviour
         startNextStep = null;
         enemySelected = null;
         Debug.Log("Object Destroyed!");
+    }
+
+    private void SetCurrentAnimState()
+    {
+        var currentState = movingDirectionModifer != MovingDirection.NotMove
+            ? MyAnimationStates.MovingState 
+            : MyAnimationStates.IdleState;
+        m_animator.SetInteger(TriggersNames.AnimationState, currentState);
     }
 
     #endregion

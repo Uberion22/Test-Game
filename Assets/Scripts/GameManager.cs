@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using System;
 using System.Collections;
 using TMPro;
 using UnityEngine.SceneManagement;
@@ -23,25 +22,16 @@ public class GameManager : MonoBehaviour
 
     private List<GameObject> allPlayers;
     private int currentStep;
-    private string enemyName;
+    private MyBandit currentEnemy;
     private int roundNumber;
-
-    public static event Action<bool> ckeckIsPlayerStep;
-    public static event Action cleareColor;
 
     // Start is called before the first frame update
     void Start()
     {
-        MyBandit.enemySelected += PlayerAttack;
+        MyBandit.enemySelected += EnemySelected;
         MyBandit.startNextStep += StartNextStep;
         audioSource.Play();
         GenerateSteps();
-    }
-
-    private void OnDestroy()
-    {
-        cleareColor = null;
-        ckeckIsPlayerStep = null;
     }
 
     public void GenerateSteps()
@@ -84,8 +74,7 @@ public class GameManager : MonoBehaviour
 
     public void NextStep()
     {
-        enemyName = String.Empty;
-        cleareColor?.Invoke();
+        currentEnemy = null;
         SetCombatQueryText(allPlayers);
         if (currentStep >= allPlayers.Count)
         {
@@ -96,19 +85,20 @@ public class GameManager : MonoBehaviour
 
         if (allPlayers[currentStep].CompareTag(CharacterTags.Enemy))
         {
-            ckeckIsPlayerStep?.Invoke(false);
-            SetButtonsStatus(false);
+            MyBandit.isPlayerStep = false;
+            SetActionButtonsStatus(false);
             var players = allPlayers.Where(e => e.CompareTag(CharacterTags.Player)).ToList();
             var playerIndex = Random.Range(0, players.Count - 1);
-            allPlayers[currentStep].SendMessage($"StartAttack", players[playerIndex].name);
+            var currentTarget = players[playerIndex].GetComponent<MyBandit>();
+            allPlayers[currentStep].SendMessage($"StartAttack", currentTarget);
             currentStep++;
         }
         else if(allPlayers[currentStep].CompareTag(CharacterTags.Player))
         {
             allPlayers[currentStep].SendMessage($"SetBlueColor");
-            SetButtonsStatus(true);
-            ckeckIsPlayerStep?.Invoke(true);
-            Debug.Log("Player step!" + currentStep);
+            SetActionButtonsStatus(true);
+            MyBandit.isPlayerStep = true;
+            Debug.Log("Player step! " + currentStep);
         }
         else
         {
@@ -118,12 +108,12 @@ public class GameManager : MonoBehaviour
         Debug.Log("Current Step is: " + currentStep);
     }
 
-    private void PlayerAttack(string currentEnemyName)
+    private void EnemySelected(MyBandit selectedEnemy)
     {
-        this.enemyName = currentEnemyName;
+        currentEnemy = selectedEnemy;
     }
 
-    private void SetButtonsStatus(bool status)
+    private void SetActionButtonsStatus(bool status)
     {
         skipBtn.interactable = status;
         attackBtn.interactable = status;
@@ -131,20 +121,18 @@ public class GameManager : MonoBehaviour
 
     public void OnSkipDown()
     {
-        enemyName = String.Empty;
+        currentEnemy = null;
         currentStep++;
         NextStep();
     }
 
     public void OnAttackDown()
     {
-        if (!String.IsNullOrEmpty(enemyName))
+        if (currentEnemy != null)
         {
-            cleareColor?.Invoke();
-            allPlayers[currentStep].SendMessage($"StartAttack", enemyName);
-            allPlayers[currentStep].SendMessage($"ClearColor");
+            allPlayers[currentStep].SendMessage($"StartAttack", currentEnemy);
             currentStep++;
-            SetButtonsStatus(false);
+            SetActionButtonsStatus(false);
         }
     }
 

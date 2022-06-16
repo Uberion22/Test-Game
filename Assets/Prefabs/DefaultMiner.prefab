@@ -68,6 +68,18 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
+  - {fileID: 2100000, guid: f4683572143f38c44be2dd7549af7d39, type: 2}
+  - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
+  - {fileID: 2100000, guid: f4683572143f38c44be2dd7549af7d39, type: 2}
+  - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
+  - {fileID: 2100000, guid: f4683572143f38c44be2dd7549af7d39, type: 2}
+  - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
+  - {fileID: 2100000, guid: f4683572143f38c44be2dd7549af7d39, type: 2}
+  - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
+  - {fileID: 2100000, guid: f4683572143f38c44be2dd7549af7d39, type: 2}
+  - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
+  - {fileID: 2100000, guid: f4683572143f38c44be2dd7549af7d39, type: 2}
+  - {fileID: 2100000, guid: d990a36b93a1d424b89a22ea42a6ff0b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -122,7 +134,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   skeletonDataAsset: {fileID: 11400000, guid: 0dd540abb1bd246459ad81a7a19f14aa, type: 2}
-  initialSkinName: base
+  initialSkinName: elite
   initialFlipX: 0
   initialFlipY: 0
   separatorSlotNames: []
@@ -280,8 +292,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_speed: 4
-  health: 4
-  unitPower: 2
+  health: 7
+  unitPower: 3
   min_X_Pos: 3
   start_X_Pos: 9
   audioSource: {fileID: 5849586381838492264}

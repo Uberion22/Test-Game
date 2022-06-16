@@ -8,6 +8,19 @@ public static class TriggersNames
     public const string AnimationState = "AnimState";
 }
 
+public enum MovingDirection
+{
+    MoveBack = -1,
+    NotMove = 0,
+    MoveForward = 1
+}
+
+public static class MyAnimationStates
+{
+    public const int IdleState = 1;
+    public const int MovingState = 2;
+}
+
 public static class MyColors
 {
     public static Color MyYellow = new Color(1, 0.92f, 0.016f, 0.4f);
